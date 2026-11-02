@@ -57,7 +57,7 @@ Alcance: una instancia de ms-operaciones, un consumidor por dominio y disco loca
 
 Verificación local de esta etapa: 47 pruebas backend (22 pedidos, 10 topología, 15 consumidores), `ng build` y 4 pruebas Angular aprobadas; JARs empaquetados después de las pruebas. Ejecutado con JVM 21.0.11 y compilación `release 17`; no se ha ejecutado aún sobre una JVM 17. En el entorno restringido se configuró `java.io.tmpdir` dentro de la carpeta de trabajo para permitir movimientos atómicos en las pruebas.
 
-La salida aportada por el estudiante el 2 de noviembre confirma dos nodos activos y seis colas quorum con ambos miembros, líder/seguidor y Commit Index/Last Applied sincronizados. Esa evidencia no acredita aún la demo de consumo/DLQ ni persistencia tras reiniciar. La verificación real de los nuevos consumidores queda pendiente de ejecutar los comandos anteriores.
+La salida aportada por el estudiante el 2 de noviembre confirma dos nodos activos y seis colas quorum con ambos miembros, líder/seguidor y Commit Index/Last Applied sincronizados. La salida posterior del estudiante confirma tres consumidores activos, colas principales vacías sin mensajes sin ACK, cuatro archivos de resultados, ACK en casos correctos, dos reintentos por fallo recuperable y rechazos sin reencolar. Las DLQ presentan despacho=2 (fallo y JSON inválido), notificaciones=1 y auditoría=2, coherentes con la demo. Las tres colas principales muestran ambos nodos sincronizados. No se ha acreditado persistencia tras reiniciar ni el recorrido completo desde PostgreSQL.
 
 ## Defensa en cinco líneas
 

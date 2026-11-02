@@ -1,0 +1,23 @@
+server:
+  port: ${SERVER_PORT:8082}
+spring:
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+  application:
+    name: ms-rabbit-admin
+  rabbitmq:
+    addresses: ${RABBITMQ_ADDRESSES:localhost:5672,localhost:5673}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    connection-timeout: 5s
+app:
+  admin:
+    scope: ${RABBIT_ADMIN_SCOPE:resource-server-worlddelivery/admin}
+    replicas: 2
+    max-length: 10000
+  security:
+    issuer: ${COGNITO_ISSUER_URI}
+    client-id: ${COGNITO_CLIENT_ID}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}

@@ -2,5 +2,5 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>cl.duoc</groupId><artifactId>worlddelivery-backend</artifactId>
   <version>0.0.1-SNAPSHOT</version><packaging>pom</packaging>
-  <modules><module>ms-pedidos</module><module>ms-operaciones</module></modules>
+  <modules><module>ms-pedidos</module><module>ms-operaciones</module><module>ms-rabbit-admin</module></modules>
 </project>

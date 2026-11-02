@@ -6,7 +6,7 @@ Repositorio de microservicios independientes Spring Boot 4.1.1, Java 17. Rama de
 |---|---|---|
 | ms-pedidos | 8080 | JPA/PostgreSQL, DTOs, JWT, registro transaccional y productor AMQP |
 | ms-operaciones | 8081 | Topología, tres consumidores, ACK manual, reintentos y DLQ |
-| ms-rabbit-admin | 8082 | Pendiente de su etapa |
+| ms-rabbit-admin | 8082 | API REST, RabbitAdmin encapsulado, DTOs validados y JWT con scope admin |
 
 El POM raíz agrega los módulos implementados. Cada servicio hereda directamente de Spring Boot y puede compilarse independientemente.
 
@@ -30,7 +30,8 @@ Documentación del servicio: [ms-pedidos](ms-pedidos/README.md).
 1. Base: pruebas Angular y Spring aisladas; lockfile de npm; exclusión de secretos y logs.
 2. ms-pedidos: persistencia JPA, validación, CORS configurable, productor y eventos pendientes.
 3. Clúster y topología: [Compose y verificación](infra/rabbitmq-cluster/README.md), exchanges y seis colas quorum. Dos nodos y seis colas con dos miembros verificados mediante salida aportada por el estudiante.
-4. [Consumidores](ms-operaciones/README.md): resultados locales por dominio, reintentos, deduplicación y guion de demo; prueba real de consumo/DLQ pendiente.
-5. Pendiente: administrador, frontend modular y despliegue.
+4. [Consumidores](ms-operaciones/README.md): resultados locales por dominio, reintentos, deduplicación y guion de demo; prueba real de consumo/DLQ confirmada por las salidas del estudiante.
+5. [Administrador](ms-rabbit-admin/README.md): crear/eliminar colas, exchanges y bindings; consulta por nombre, JWT, scope admin y CORS configurable. Integración real con token y broker pendiente.
+6. Pendiente: frontend modular y despliegue.
 
 No se ejecutan acciones contra AWS. Las instrucciones de despliegue se entregarán como comandos para el estudiante. `.env`, `.env.*` y logs están ignorados; solo `.env.example` con marcadores se versiona.
