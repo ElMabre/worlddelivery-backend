@@ -11,7 +11,13 @@ spring:
       simple:
         acknowledge-mode: manual
         prefetch: 1
+        retry:
+          enabled: false
 app:
+  processing:
+    max-retries: 2
+    demo-failure-enabled: ${DEMO_FAILURE_ENABLED:true}
+    storage-directory: ${OPERACIONES_STORAGE_DIR:./data/operaciones}
   topology:
     direct-exchange: wd.pedidos.direct
     topic-exchange: wd.eventos.topic
