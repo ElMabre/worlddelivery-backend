@@ -34,7 +34,7 @@ Un publicador consulta hasta 50 eventos cada 2 segundos. Envía JSON persistente
 | Cambiar estado | wd.eventos.topic | pedido.estado.en_reparto (según estado) |
 | Eliminar | wd.eventos.topic | pedido.eliminado |
 
-Los nombres se definen en `application.yml`, enlazados por `MensajeriaProperties` desde `MensajeriaConfig`. La lógica de negocio no conoce nombres de exchanges ni colas. La topología se incorporará en la siguiente etapa; mientras no exista, las publicaciones quedan pendientes.
+Los nombres se definen en `application.yml`, enlazados por `MensajeriaProperties` desde `MensajeriaConfig`. La lógica de negocio no conoce nombres de exchanges ni colas. La topología se declara desde ms-operaciones, después de verificar los dos nodos del clúster. Mientras no exista, las publicaciones quedan pendientes.
 
 Contrato JSON: `eventId` (UUID), `tipo` (CREADO, ESTADO_ACTUALIZADO o ELIMINADO), `ocurridoEn` (Instant) y `pedido` (snapshot con id, producto, cliente, direccion, fechaEntrega y estado). Las dos entregas de creación comparten eventId. Cada operación posterior tiene un ID nuevo.
 
@@ -53,7 +53,7 @@ Variables en `.env.example`, sin secretos reales. `.env` está ignorado y **no s
 
 - `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`: PostgreSQL local o RDS. RDS se configurará en despliegue; no se ha conectado desde este trabajo.
 - `COGNITO_ISSUER_URI`: emisor autorizado. El arranque real requiere su configuración; los tests lo sustituyen.
-- `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`: conexión al broker.
+- `RABBITMQ_ADDRESSES` (por defecto localhost:5672,localhost:5673), `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`: conexión a los nodos del broker. Los antiguos RABBITMQ_HOST/PORT se aceptan como primer destino cuando no se define RABBITMQ_ADDRESSES.
 - `CORS_ALLOWED_ORIGINS`: orígenes separados por comas. Vacío por defecto. Permite GET, POST, PATCH, DELETE y OPTIONS, con Authorization y Content-Type. API Gateway necesitará su configuración coherente en despliegue.
 - `DB_DDL_AUTO=update`: crea/actualiza tablas para el proyecto académico. Antes del despliegue definitivo se debe revisar el esquema; no reemplaza un sistema de migraciones.
 - `OUTBOX_ENABLED=false`: desactiva el envío programado, pero mantiene el registro de eventos.

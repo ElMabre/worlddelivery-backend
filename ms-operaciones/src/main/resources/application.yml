@@ -1,0 +1,35 @@
+server:
+  port: ${SERVER_PORT:8081}
+spring:
+  application:
+    name: ms-operaciones
+  rabbitmq:
+    addresses: ${RABBITMQ_ADDRESSES:localhost:5672,localhost:5673}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    listener:
+      simple:
+        acknowledge-mode: manual
+        prefetch: 1
+app:
+  topology:
+    direct-exchange: wd.pedidos.direct
+    topic-exchange: wd.eventos.topic
+    dead-letter-exchange: wd.dlx.direct
+    replicas: 2
+    max-length: 10000
+    despacho:
+      queue: q.despacho.tickets
+      dead-letter-queue: q.despacho.tickets.dlq
+      routing-key: pedido.creado
+      dead-letter-key: despacho.dead
+    notificaciones:
+      queue: q.notificaciones.clientes
+      dead-letter-queue: q.notificaciones.clientes.dlq
+      routing-key: pedido.estado.*
+      dead-letter-key: notificaciones.dead
+    auditoria:
+      queue: q.auditoria.eventos
+      dead-letter-queue: q.auditoria.eventos.dlq
+      routing-key: pedido.#
+      dead-letter-key: auditoria.dead

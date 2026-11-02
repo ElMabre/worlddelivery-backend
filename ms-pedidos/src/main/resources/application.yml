@@ -18,8 +18,7 @@ spring:
         jwt:
           issuer-uri: ${COGNITO_ISSUER_URI}
   rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
+    addresses: ${RABBITMQ_ADDRESSES:${RABBITMQ_HOST:localhost}:${RABBITMQ_PORT:5672},localhost:5673}
     username: ${RABBITMQ_USERNAME}
     password: ${RABBITMQ_PASSWORD}
     publisher-confirm-type: correlated

@@ -5,7 +5,7 @@ Repositorio de microservicios independientes Spring Boot 4.1.1, Java 17. Rama de
 | Servicio | Puerto | Estado |
 |---|---|---|
 | ms-pedidos | 8080 | JPA/PostgreSQL, DTOs, JWT, registro transaccional y productor AMQP |
-| ms-operaciones | 8081 | Pendiente de su etapa |
+| ms-operaciones | 8081 | Topología declarativa; consumidores pendientes |
 | ms-rabbit-admin | 8082 | Pendiente de su etapa |
 
 El POM raíz agrega los módulos implementados. Cada servicio hereda directamente de Spring Boot y puede compilarse independientemente.
@@ -29,6 +29,7 @@ Documentación del servicio: [ms-pedidos](ms-pedidos/README.md).
 
 1. Base: pruebas Angular y Spring aisladas; lockfile de npm; exclusión de secretos y logs.
 2. ms-pedidos: persistencia JPA, validación, CORS configurable, productor y eventos pendientes.
-3. Pendiente: clúster, topología, consumidores, administrador, frontend modular y despliegue.
+3. Clúster y topología: [Compose y verificación](infra/rabbitmq-cluster/README.md), exchanges y seis colas quorum. Ejecución real de Docker pendiente.
+4. Pendiente: consumidores, administrador, frontend modular y despliegue.
 
 No se ejecutan acciones contra AWS. Las instrucciones de despliegue se entregarán como comandos para el estudiante. `.env`, `.env.*` y logs están ignorados; solo `.env.example` con marcadores se versiona.
