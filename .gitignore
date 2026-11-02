@@ -37,6 +37,9 @@ build/
 .env.*
 !.env.example
 *.log
+*.env
+*.env.*
+!*.env.example
 
 # Local consumer results (may contain customer data)
 /ms-operaciones/data/

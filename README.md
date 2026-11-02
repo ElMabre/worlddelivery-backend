@@ -32,6 +32,7 @@ Documentación del servicio: [ms-pedidos](ms-pedidos/README.md).
 3. Clúster y topología: [Compose y verificación](infra/rabbitmq-cluster/README.md), exchanges y seis colas quorum. Dos nodos y seis colas con dos miembros verificados mediante salida aportada por el estudiante.
 4. [Consumidores](ms-operaciones/README.md): resultados locales por dominio, reintentos, deduplicación y guion de demo; prueba real de consumo/DLQ confirmada por las salidas del estudiante.
 5. [Administrador](ms-rabbit-admin/README.md): crear/eliminar colas, exchanges y bindings; consulta por nombre, JWT, scope admin y CORS configurable. Integración real con token y broker pendiente.
-6. Pendiente: frontend modular y despliegue.
+6. Frontend modular implementado en su repositorio: shell, guards, vistas de pedidos y RabbitMQ, interfaces y environments.
+7. [Despliegue](infra/deploy/README.md): unidades systemd, guía RDS, plantillas S3/CloudFront y HTTP API, comandos manuales y [guion EP4 de 8 minutos](infra/deploy/EP4-guion.md).
 
-No se ejecutan acciones contra AWS. Las instrucciones de despliegue se entregarán como comandos para el estudiante. `.env`, `.env.*` y logs están ignorados; solo `.env.example` con marcadores se versiona.
+No se ejecutaron acciones contra AWS. Quedan pendientes Cognito real, permisos por usuario, integración completa con PostgreSQL y ejecución del despliegue. Las instrucciones están entregadas como comandos para el estudiante. Los archivos de entorno y logs están ignorados; solo ejemplos con marcadores se versionan.

@@ -1,0 +1,29 @@
+[Unit]
+Description=World Delivery ms-operaciones
+After=network-online.target docker.service
+Wants=network-online.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=worlddelivery
+Group=worlddelivery
+WorkingDirectory=/var/lib/worlddelivery/ms-operaciones
+EnvironmentFile=/etc/worlddelivery/ms-operaciones.env
+ExecStart=/usr/bin/java -Xms64m -Xmx256m -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=64m -XX:MaxDirectMemorySize=64m -XX:+ExitOnOutOfMemoryError -jar /opt/worlddelivery/ms-operaciones.jar
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=45
+SuccessExitStatus=143
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/worlddelivery/ms-operaciones
+UMask=0077
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

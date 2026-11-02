@@ -1,0 +1,542 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "World Delivery: new HTTP API, JWT, VPC link and internal ALB; existing EC2",
+  "Parameters": {
+    "VpcId": {
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "SubnetIds": {
+      "Type": "List<AWS::EC2::Subnet::Id>",
+      "Description": "Two subnets in different AZs in the same VPC"
+    },
+    "InstanceId": {
+      "Type": "AWS::EC2::Instance::Id"
+    },
+    "BackendSecurityGroupId": {
+      "Type": "AWS::EC2::SecurityGroup::Id"
+    },
+    "Issuer": {
+      "Type": "String"
+    },
+    "ClientId": {
+      "Type": "String"
+    },
+    "FrontendOrigin": {
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "LinkSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "HTTP API VPC Link",
+        "VpcId": {
+          "Ref": "VpcId"
+        }
+      }
+    },
+    "AlbSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Internal API load balancer",
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 80,
+            "ToPort": 80,
+            "SourceSecurityGroupId": {
+              "Ref": "LinkSG"
+            }
+          }
+        ]
+      }
+    },
+    "PedidosIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "BackendSecurityGroupId"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8080,
+        "ToPort": 8080,
+        "SourceSecurityGroupId": {
+          "Ref": "AlbSG"
+        }
+      }
+    },
+    "PedidosTarget": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "Port": 8080,
+        "Protocol": "HTTP",
+        "TargetType": "instance",
+        "Targets": [
+          {
+            "Id": {
+              "Ref": "InstanceId"
+            },
+            "Port": 8080
+          }
+        ],
+        "HealthCheckPath": "/api/pedidos",
+        "Matcher": {
+          "HttpCode": "401"
+        }
+      }
+    },
+    "AdminIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "BackendSecurityGroupId"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8082,
+        "ToPort": 8082,
+        "SourceSecurityGroupId": {
+          "Ref": "AlbSG"
+        }
+      }
+    },
+    "AdminTarget": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "Port": 8082,
+        "Protocol": "HTTP",
+        "TargetType": "instance",
+        "Targets": [
+          {
+            "Id": {
+              "Ref": "InstanceId"
+            },
+            "Port": 8082
+          }
+        ],
+        "HealthCheckPath": "/api/rabbitmq/queues/demo",
+        "Matcher": {
+          "HttpCode": "401"
+        }
+      }
+    },
+    "Alb": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Scheme": "internal",
+        "Type": "application",
+        "Subnets": {
+          "Ref": "SubnetIds"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "AlbSG"
+          }
+        ]
+      }
+    },
+    "Listener": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties": {
+        "LoadBalancerArn": {
+          "Ref": "Alb"
+        },
+        "Port": 80,
+        "Protocol": "HTTP",
+        "DefaultActions": [
+          {
+            "Type": "fixed-response",
+            "FixedResponseConfig": {
+              "StatusCode": "404",
+              "ContentType": "text/plain",
+              "MessageBody": "Not found"
+            }
+          }
+        ]
+      }
+    },
+    "PedidosRule": {
+      "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "Properties": {
+        "ListenerArn": {
+          "Ref": "Listener"
+        },
+        "Priority": 1,
+        "Conditions": [
+          {
+            "Field": "path-pattern",
+            "Values": [
+              "/api/pedidos",
+              "/api/pedidos/*"
+            ]
+          }
+        ],
+        "Actions": [
+          {
+            "Type": "forward",
+            "TargetGroupArn": {
+              "Ref": "PedidosTarget"
+            }
+          }
+        ]
+      }
+    },
+    "AdminRule": {
+      "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "Properties": {
+        "ListenerArn": {
+          "Ref": "Listener"
+        },
+        "Priority": 2,
+        "Conditions": [
+          {
+            "Field": "path-pattern",
+            "Values": [
+              "/api/rabbitmq/*"
+            ]
+          }
+        ],
+        "Actions": [
+          {
+            "Type": "forward",
+            "TargetGroupArn": {
+              "Ref": "AdminTarget"
+            }
+          }
+        ]
+      }
+    },
+    "Api": {
+      "Type": "AWS::ApiGatewayV2::Api",
+      "Properties": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-http"
+        },
+        "ProtocolType": "HTTP",
+        "CorsConfiguration": {
+          "AllowOrigins": [
+            {
+              "Ref": "FrontendOrigin"
+            }
+          ],
+          "AllowMethods": [
+            "GET",
+            "POST",
+            "PATCH",
+            "DELETE",
+            "OPTIONS"
+          ],
+          "AllowHeaders": [
+            "Authorization",
+            "Content-Type"
+          ],
+          "MaxAge": 300
+        }
+      }
+    },
+    "Link": {
+      "Type": "AWS::ApiGatewayV2::VpcLink",
+      "Properties": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-link"
+        },
+        "SubnetIds": {
+          "Ref": "SubnetIds"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "LinkSG"
+          }
+        ]
+      }
+    },
+    "Integration": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "IntegrationType": "HTTP_PROXY",
+        "IntegrationMethod": "ANY",
+        "ConnectionType": "VPC_LINK",
+        "ConnectionId": {
+          "Ref": "Link"
+        },
+        "IntegrationUri": {
+          "Ref": "Listener"
+        },
+        "PayloadFormatVersion": "1.0",
+        "TimeoutInMillis": 29000,
+        "RequestParameters": {
+          "overwrite:path": "$request.path"
+        }
+      }
+    },
+    "Authorizer": {
+      "Type": "AWS::ApiGatewayV2::Authorizer",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "Name": "cognito",
+        "AuthorizerType": "JWT",
+        "IdentitySource": [
+          "$request.header.Authorization"
+        ],
+        "JwtConfiguration": {
+          "Audience": [
+            {
+              "Ref": "ClientId"
+            }
+          ],
+          "Issuer": {
+            "Ref": "Issuer"
+          }
+        }
+      }
+    },
+    "ListPedidos": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "GET /api/pedidos",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Authorizer"
+        },
+        "AuthorizationScopes": [
+          "resource-server-worlddelivery/api-access"
+        ]
+      }
+    },
+    "CreatePedido": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "POST /api/pedidos",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Authorizer"
+        },
+        "AuthorizationScopes": [
+          "resource-server-worlddelivery/write"
+        ]
+      }
+    },
+    "UpdatePedido": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "PATCH /api/pedidos/{id}/estado",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Authorizer"
+        },
+        "AuthorizationScopes": [
+          "resource-server-worlddelivery/update"
+        ]
+      }
+    },
+    "DeletePedido": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "DELETE /api/pedidos/{id}",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Authorizer"
+        },
+        "AuthorizationScopes": [
+          "resource-server-worlddelivery/delete"
+        ]
+      }
+    },
+    "CreateQueue": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "POST /api/rabbitmq/queues",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Authorizer"
+        },
+        "AuthorizationScopes": [
+          "resource-server-worlddelivery/admin"
+        ]
+      }
+    },
+    "ReadQueue": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "GET /api/rabbitmq/queues/{name}",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Authorizer"
+        },
+        "AuthorizationScopes": [
+          "resource-server-worlddelivery/admin"
+        ]
+      }
+    },
+    "DeleteQueue": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "DELETE /api/rabbitmq/queues/{name}",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Authorizer"
+        },
+        "AuthorizationScopes": [
+          "resource-server-worlddelivery/admin"
+        ]
+      }
+    },
+    "CreateExchange": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "POST /api/rabbitmq/exchanges",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Authorizer"
+        },
+        "AuthorizationScopes": [
+          "resource-server-worlddelivery/admin"
+        ]
+      }
+    },
+    "DeleteExchange": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "DELETE /api/rabbitmq/exchanges/{name}",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Authorizer"
+        },
+        "AuthorizationScopes": [
+          "resource-server-worlddelivery/admin"
+        ]
+      }
+    },
+    "CreateBinding": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "POST /api/rabbitmq/bindings",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Authorizer"
+        },
+        "AuthorizationScopes": [
+          "resource-server-worlddelivery/admin"
+        ]
+      }
+    },
+    "DeleteBinding": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "DELETE /api/rabbitmq/bindings",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Authorizer"
+        },
+        "AuthorizationScopes": [
+          "resource-server-worlddelivery/admin"
+        ]
+      }
+    },
+    "Stage": {
+      "Type": "AWS::ApiGatewayV2::Stage",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "StageName": "prod",
+        "AutoDeploy": true,
+        "DefaultRouteSettings": {
+          "ThrottlingBurstLimit": 20,
+          "ThrottlingRateLimit": 10
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "ApiBaseUrl": {
+      "Value": {
+        "Fn::Sub": "https://${Api}.execute-api.${AWS::Region}.${AWS::URLSuffix}/prod"
+      }
+    },
+    "ApiId": {
+      "Value": {
+        "Ref": "Api"
+      }
+    }
+  }
+}
