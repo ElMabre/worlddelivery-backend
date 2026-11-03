@@ -1,4 +1,4 @@
-param(
+﻿param(
     [ValidateSet('despacho','notificaciones','auditoria')][string]$Dominio='despacho',
     [ValidateSet('ok','dlq','invalid')][string]$Caso='ok',
     [System.Management.Automation.PSCredential]$Credential
@@ -33,7 +33,7 @@ $authorization=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(
     $Credential.UserName+':'+$Credential.GetNetworkCredential().Password))
 try {
     $uri='http://127.0.0.1:15672/api/exchanges/%2F/'+[Uri]::EscapeDataString($route.Exchange)+'/publish'
-    $response=Invoke-RestMethod -Method Put -Uri $uri -Headers @{Authorization="Basic $authorization"} `
+    $response=Invoke-RestMethod -Method Post -Uri $uri -Headers @{Authorization="Basic $authorization"} `
         -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($body))
     if(-not $response.routed) { throw 'Mensaje sin ruta: revisar exchanges y bindings.' }
     Write-Host "Publicado eventId=$eventId dominio=$Dominio caso=$Caso. Revisar logs y colas; routed no acredita el consumo."

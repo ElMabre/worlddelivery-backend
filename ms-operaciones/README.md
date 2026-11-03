@@ -39,13 +39,15 @@ Repetir para otros dominios:
 Remove-Variable credencialRabbit
 ```
 
-La demo de notificaciones también llega a auditoría por `pedido.#`: en el caso fallido aumentan ambas DLQ. El JSON inválido se rechaza inmediatamente, sin reintentos de negocio. El script publica únicamente en localhost mediante la [API HTTP oficial de RabbitMQ](https://www.rabbitmq.com/docs/http-api-reference#put--api-exchanges-vhost-name-publish); `routed=true` acredita una ruta, no el ACK ni la llegada a DLQ. El productor real usa AMQP y outbox: esta demo aislada no prueba el recorrido JPA → outbox → consumidores.
+La demo de notificaciones también llega a auditoría por `pedido.#`: en el caso fallido aumentan ambas DLQ. El JSON inválido se rechaza inmediatamente, sin reintentos de negocio. El script usa POST para publicar (PUT devolvió 405 en la prueba real del estudiante) únicamente en localhost mediante la [API HTTP oficial de RabbitMQ](https://www.rabbitmq.com/docs/4.2/http-api-reference); `routed=true` acredita una ruta, no el ACK ni la llegada a DLQ. El productor real usa AMQP y outbox: esta demo aislada no prueba el recorrido JPA → outbox → consumidores.
+
+Conteos esperados desde DLQ vacías: un caso `dlq` de despacho y un caso `invalid` dejan **2 mensajes** en `q.despacho.tickets.dlq`. Si se repite `invalid` una segunda vez, quedan **3 mensajes**, como en la última corrida reportada. Cada `invalid` agrega uno, sin reintentos; no se debe comparar un total absoluto sin registrar el conteo inicial.
 
 ## Procesamiento y resultados
 
 `application.yml` y `TopologiaProperties` centralizan exchanges, colas y bindings. Los listeners resuelven sus nombres desde propiedades. `RabbitTopologyConfig` declara los recursos y conserva DLX, quorum y dead lettering at-least-once de la etapa anterior.
 
-`ProcesadorMensaje` valida JSON, DTO y tipo de evento. Un fallo recuperable ejecuta como máximo tres intentos dentro de la misma entrega, sin devolverla entre intentos al broker. El retry automático de Spring está desactivado para no multiplicar reintentos. Al agotarse, ejecuta `basicNack(tag,false,false)`; RabbitMQ se encarga de la DLQ. Errores permanentes y mensajes inválidos se rechazan directamente. Los logs registran dominio, eventId, intento y causa, sin el cuerpo ni credenciales.
+`ProcesadorMensaje` valida JSON, DTO y tipo de evento. Un fallo recuperable ejecuta como máximo tres intentos dentro de la misma entrega, sin espera entre intentos y sin devolverla entre intentos al broker. El retry automático de Spring está desactivado para no multiplicar reintentos. Al agotarse, ejecuta `basicNack(tag,false,false)`; RabbitMQ se encarga de la DLQ. Errores permanentes y mensajes inválidos se rechazan directamente. Los logs registran dominio, eventId, intento y causa, sin el cuerpo ni credenciales.
 
 Cada servicio guarda el snapshot del evento en su carpeta: despacho representa un ticket; notificaciones es una simulación local, sin envío de correo; auditoría conserva el registro. El resultado se escribe antes del ACK mediante un archivo temporal y movimiento atómico. Cada eventId se guarda una vez por dominio y los duplicados idénticos se omiten incluso al reconstruir el registro. El mismo ID con otro contenido se rechaza. Si falla el ACK, el error de canal se propaga y no se ejecuta un NACK adicional.
 
