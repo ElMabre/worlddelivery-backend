@@ -54,8 +54,7 @@ public class ProcesadorMensaje {
                 log.error("FALLO_NO_RECUPERABLE dominio={} eventId={} clase={}",dominio,eventId,ex.getClass().getSimpleName());
                 rechazar(channel,tag,dominio,eventId,"NO_RECUPERABLE"); return;
             }
-            // ACK fuera del bloque de negocio: si falla el canal, no enviar un segundo NACK.
-            // Una redelivery encontrará el registro persistido y podrá confirmar sin duplicarlo.
+            // Un fallo del canal durante el ACK no debe provocar un segundo NACK.
             channel.basicAck(tag,false);
             log.info("ACK_ENVIADO dominio={} eventId={}",dominio,eventId);
             return;

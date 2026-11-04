@@ -14,7 +14,6 @@ public class RegistroEventos {
     public RegistroEventos(EventoPendienteRepository pendientes, MensajeriaProperties config, ObjectMapper json) {
         this.pendientes=pendientes; this.config=config; this.json=json;
     }
-    // Obligatoriamente participa en la transacción que guarda o elimina el pedido.
     @Transactional(propagation=Propagation.MANDATORY)
     public void registrar(PedidoEvento.Tipo tipo, PedidoResponse pedido) {
         var evento=new PedidoEvento(UUID.randomUUID().toString(),tipo,Instant.now(),pedido);
@@ -27,7 +26,6 @@ public class RegistroEventos {
         if (tipo==PedidoEvento.Tipo.CREADO) {
             pendientes.save(new EventoPendiente(evento.eventId(),config.directExchange(),key,payload));
         }
-        // Todos los eventos, incluida creación, llegan al topic de auditoría.
         pendientes.save(new EventoPendiente(evento.eventId(),config.topicExchange(),key,payload));
     }
 }

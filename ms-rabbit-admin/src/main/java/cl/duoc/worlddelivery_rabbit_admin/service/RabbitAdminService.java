@@ -40,7 +40,7 @@ public class RabbitAdminService {
         return new Binding(request.queue(),Binding.DestinationType.QUEUE,request.exchange(),request.routingKey(),null);
     }
     private ResponseStatusException unavailable() {
-        // RabbitAdmin can return false/null on broker failures; do not report a fabricated success or 404.
+        // false/null no permiten distinguir un recurso ausente de un fallo del broker.
         return new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"RabbitMQ no confirmo la operacion; verificar el recurso antes de repetir");
     }
 }

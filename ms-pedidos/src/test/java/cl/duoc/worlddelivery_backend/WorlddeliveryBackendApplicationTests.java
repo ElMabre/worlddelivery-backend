@@ -14,7 +14,6 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-// The decoder is replaced before context startup: no Cognito discovery or network calls.
 @SpringBootTest(properties = "spring.security.oauth2.resourceserver.jwt.issuer-uri=https://issuer.example.test")
 @org.springframework.test.context.ActiveProfiles("test")
 @org.springframework.transaction.annotation.Transactional

@@ -46,7 +46,6 @@ public class RabbitTopologyConfig {
                                     @Qualifier("deadLetterExchange") DirectExchange exchange) {
         return BindingBuilder.bind(queue).to(exchange).with(config.auditoria().deadLetterKey());
     }
-    // Explicit declaration is needed even before the consumer listeners exist.
     @Bean
     @ConditionalOnProperty(name="app.topology.declare-on-startup",havingValue="true",matchIfMissing=true)
     ApplicationRunner declararTopologia(AmqpAdmin admin, List<Exchange> exchanges,
