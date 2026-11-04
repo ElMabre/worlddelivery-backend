@@ -2,7 +2,7 @@
 
 Imagen oficial fijada a `rabbitmq:4.2.9-management`, dos nombres estables y un volumen por nodo. El archivo `rabbitmq.conf` usa descubrimiento estático; no consulta AWS. La cookie común y las credenciales se reciben por variables de entorno.
 
-## Preparar y levantar (comandos para el estudiante)
+## Arranque del clúster
 
 Necesitas Docker Engine/Compose con contenedores Linux. Desde esta carpeta:
 
@@ -17,7 +17,7 @@ docker compose ps
 .\Verify-Cluster.ps1
 ```
 
-No se ejecutaron estos comandos contra un motor Docker en este trabajo. `.env` está ignorado; `.env.example` no contiene credenciales reales. `config --quiet` valida sin imprimir los valores interpolados.
+`config --quiet` valida sin imprimir los valores interpolados.
 
 El healthcheck `ping` comprueba la VM Erlang para que el segundo nodo pueda iniciar durante una recuperación conjunta. **No certifica que el clúster esté listo.** `Verify-Cluster.ps1` comprueba que RabbitMQ esté arrancado y que cada nodo vea los dos miembros activos. Si falla, espera y vuelve a ejecutarlo; revisa `docker compose logs --tail=100` si persiste. No declares las colas antes de esta verificación.
 
@@ -42,7 +42,7 @@ Desde la raíz del backend:
 .\mvnw.cmd -pl ms-operaciones spring-boot:run
 ```
 
-El servicio declara 3 exchanges, 6 colas y 6 bindings al arrancar. Los consumidores se añadirán en la siguiente etapa; por ahora no se procesan ni rechazan mensajes automáticamente. Después puedes iniciar ms-pedidos para publicar sus eventos pendientes.
+El servicio declara 3 exchanges, 6 colas y 6 bindings al arrancar. Sus tres consumidores escuchan las colas principales y confirman cada mensaje después de guardar el resultado. Después puedes iniciar ms-pedidos para publicar sus eventos pendientes.
 
 Desde la carpeta de Compose:
 
@@ -77,9 +77,3 @@ Las colas principales tienen `x-dead-letter-exchange`, una clave DLQ por dominio
 - Cambiar variables del usuario inicial no cambia automáticamente un usuario de un volumen ya inicializado.
 
 **Límite de dos nodos:** una cola con dos réplicas necesita ambas disponibles para conservar mayoría. Este diseño cumple el ejercicio de dos nodos, pero no tolera la caída de uno. Para tolerar un fallo se necesitan al menos tres miembros. Dos contenedores en una EC2 tampoco protegen de la caída de ese host.
-
-## Verificado y pendiente
-
-Verificado aquí: esquema de Compose, sintaxis del script PowerShell, pruebas de los beans y contratos de rutas, compilación y tests de los proyectos. Pendiente: ejecutar Docker, comprobar clustering, membresía de quorum, persistencia tras reinicio y el paso real a DLQ en la etapa de consumidores.
-
-Fuentes: [imagen oficial](https://github.com/docker-library/official-images/blob/master/library/rabbitmq), [descubrimiento](https://www.rabbitmq.com/docs/4.2/cluster-formation), [quorum y DLQ](https://www.rabbitmq.com/docs/4.2/quorum-queues).

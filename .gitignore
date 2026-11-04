@@ -44,3 +44,6 @@ build/
 # Local consumer results (may contain customer data)
 /ms-operaciones/data/
 /data/
+evidencia-*
+*.pem
+cliente-*.json

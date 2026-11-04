@@ -1,6 +1,6 @@
 # ms-pedidos
 
-API de pedidos en el puerto 8080. Conserva el contrato que utiliza Angular:
+API de pedidos en el puerto 8080. Contrato de la API utilizada por Angular:
 
 | Método | Ruta | Scope | Respuesta |
 |---|---|---|---|
@@ -38,9 +38,9 @@ Los nombres se definen en `application.yml`, enlazados por `MensajeriaProperties
 
 Contrato JSON: `eventId` (UUID), `tipo` (CREADO, ESTADO_ACTUALIZADO o ELIMINADO), `ocurridoEn` (Instant) y `pedido` (snapshot con id, producto, cliente, direccion, fechaEntrega y estado). Las dos entregas de creación comparten eventId. Cada operación posterior tiene un ID nuevo.
 
-La entrega es **al menos una vez**: un reinicio después del ACK del broker y antes de borrar el registro puede duplicar el evento. Los consumidores deberán manejar duplicados por eventId y dominio. El publicador está diseñado para **una instancia de ms-pedidos**; ejecutar varias requiere coordinación/locking adicional. Si la primera entrega falla, se detiene el lote para no adelantar las posteriores.
+La entrega es **al menos una vez**: un reinicio después del ACK del broker y antes de borrar el registro puede duplicar el evento. Los consumidores identifican duplicados por eventId y dominio. El publicador está diseñado para **una instancia de ms-pedidos**; ejecutar varias requiere coordinación/locking adicional. Si la primera entrega falla, se detiene el lote para no adelantar las posteriores.
 
-Los reintentos de publicación por caída del broker son independientes de los dos reintentos de procesamiento que se implementarán en ms-operaciones. `[ERROR-DLQ]` se acepta y conserva en el evento; su envío a DLQ se implementará y demostrará en la etapa de consumidores.
+Los reintentos de publicación del outbox son independientes de los intentos de consumo en ms-operaciones.
 
 ## Configuración y ejecución
 
@@ -51,25 +51,9 @@ Variables en `.env.example`, sin secretos reales. `.env` está ignorado y **no s
 .\mvnw.cmd -pl ms-pedidos spring-boot:run
 ```
 
-- `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`: PostgreSQL local o RDS. RDS se configurará en despliegue; no se ha conectado desde este trabajo.
+- `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`: PostgreSQL local o RDS. En RDS, usar TLS con verificación de nombre y CA.
 - `COGNITO_ISSUER_URI`: emisor autorizado. El arranque real requiere su configuración; los tests lo sustituyen.
 - `RABBITMQ_ADDRESSES` (por defecto localhost:5672,localhost:5673), `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`: conexión a los nodos del broker. Los antiguos RABBITMQ_HOST/PORT se aceptan como primer destino cuando no se define RABBITMQ_ADDRESSES.
-- `CORS_ALLOWED_ORIGINS`: orígenes separados por comas. Vacío por defecto. Permite GET, POST, PATCH, DELETE y OPTIONS, con Authorization y Content-Type. API Gateway necesitará su configuración coherente en despliegue.
-- `DB_DDL_AUTO=update`: crea/actualiza tablas para el proyecto académico. Antes del despliegue definitivo se debe revisar el esquema; no reemplaza un sistema de migraciones.
+- `CORS_ALLOWED_ORIGINS`: orígenes separados por comas. Vacío por defecto. Permite GET, POST, PATCH, DELETE y OPTIONS, con Authorization y Content-Type. El preflight de Gateway debe admitir el mismo origen.
+- `DB_DDL_AUTO=update`: crea/actualiza tablas para el proyecto académico. Después de inicializar la base, usar validate en los siguientes arranques.
 - `OUTBOX_ENABLED=false`: desactiva el envío programado, pero mantiene el registro de eventos.
-
-## Verificación
-
-`mvn test` desde la raíz ejecuta pruebas de seguridad, CRUD, validación, persistencia JPA, rollback conjunto de pedido/eventos, seed, CORS y envío AMQP confirmado/rechazado/devuelto.
-
-H2 y mocks evitan conexiones externas. No se ha certificado PostgreSQL/RDS, RabbitMQ real ni JVM 17: las pruebas se ejecutan con JDK 21 y compilación `--release 17`. La prueba de recuperación del publicador comprueba que la fila permanece ante fallo y se elimina tras confirmación simulada.
-
-## Defensa en cinco líneas
-
-1. Separé ms-pedidos para darle responsabilidad y despliegue propios.
-2. Cambié la lista por JPA/PostgreSQL para conservar pedidos al reiniciar.
-3. Validé DTOs y mantuve scopes y CORS configurable para controlar entradas y acceso.
-4. Guardé pedido y eventos juntos para recuperar publicaciones si RabbitMQ falla.
-5. Probé persistencia, permisos y mensajería localmente; la integración cloud queda pendiente.
-
-Resultado de esta etapa: 22 pruebas backend aprobadas; ng build satisfactorio; 4 pruebas frontend aprobadas. JAR ejecutable empaquetado después de las pruebas.
