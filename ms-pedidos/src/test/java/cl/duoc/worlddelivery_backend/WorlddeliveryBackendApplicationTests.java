@@ -30,7 +30,7 @@ class WorlddeliveryBackendApplicationTests {
     @Autowired jakarta.persistence.EntityManager entityManager;
 
     private cl.duoc.worlddelivery_backend.dto.CrearPedidoRequest pedidoDemo() {
-        return new cl.duoc.worlddelivery_backend.dto.CrearPedidoRequest("[ERROR-DLQ] Prueba", "Cliente", "Dirección",
+        return new cl.duoc.worlddelivery_backend.dto.CrearPedidoRequest("[ERROR-DLQ] Prueba", "Cliente", "DirecciÃ³n",
             java.time.LocalDate.of(2026,12,1), cl.duoc.worlddelivery_backend.domain.EstadoPedido.PENDIENTE);
     }
 
@@ -75,24 +75,24 @@ class WorlddeliveryBackendApplicationTests {
     @Test void createsUpdatesAndDeletesOrderWithRequiredScopes() throws Exception {
         var response = mvc.perform(post("/api/pedidos").with(jwt().authorities(scope("write")))
                 .contentType("application/json").content("""
-                {"producto":"Prueba local","cliente":"Demo","direccion":"Dirección de prueba",
+                {"producto":"Prueba local","cliente":"Demo","direccion":"DirecciÃ³n de prueba",
                  "fechaEntrega":"2026-12-01","estado":"EN PREPARACION"}
                 """))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.producto").value("Prueba local"))
             .andReturn().getResponse().getContentAsString();
         int id = com.jayway.jsonpath.JsonPath.read(response, "$.id");
-        mvc.perform(patch("/api/pedidos/" + id + "/estado").with(jwt().authorities(scope("update")))
+        mvc.perform(patch("/api/pedidos/" + id + "/estado").with(jwt().jwt(j -> j.claim("token_use","access").claim("cognito:groups",java.util.List.of("Admin"))).authorities(scope("update")))
                 .contentType("application/json").content("{\"estado\":\"ENTREGADO\"}"))
             .andExpect(status().isOk()).andExpect(jsonPath("$.estado").value("ENTREGADO"));
-        mvc.perform(delete("/api/pedidos/" + id).with(jwt().authorities(scope("delete"))))
+        mvc.perform(delete("/api/pedidos/" + id).with(jwt().jwt(j -> j.claim("token_use","access").claim("cognito:groups",java.util.List.of("Admin"))).authorities(scope("delete"))))
             .andExpect(status().isNoContent());
-        mvc.perform(delete("/api/pedidos/" + id).with(jwt().authorities(scope("delete"))))
+        mvc.perform(delete("/api/pedidos/" + id).with(jwt().jwt(j -> j.claim("token_use","access").claim("cognito:groups",java.util.List.of("Admin"))).authorities(scope("delete"))))
             .andExpect(status().isNotFound());
     }
 
     @Test void updateMissingOrderReturns404() throws Exception {
-        mvc.perform(patch("/api/pedidos/999999/estado").with(jwt().authorities(scope("update")))
+        mvc.perform(patch("/api/pedidos/999999/estado").with(jwt().jwt(j -> j.claim("token_use","access").claim("cognito:groups",java.util.List.of("Admin"))).authorities(scope("update")))
                 .contentType("application/json").content("{\"estado\":\"ENTREGADO\"}"))
             .andExpect(status().isNotFound());
     }
@@ -133,7 +133,7 @@ class WorlddeliveryBackendApplicationTests {
         service.actualizar(response.id(),new cl.duoc.worlddelivery_backend.dto.ActualizarEstadoRequest(
             cl.duoc.worlddelivery_backend.domain.EstadoPedido.EN_REPARTO));
         service.eliminar(response.id()); entityManager.flush(); entityManager.clear();
-        org.assertj.core.api.Assertions.assertThat(pedidos.findById(response.id())).isEmpty();
+        org.assertj.core.api.Assertions.assertThat(pedidos.findById(response.id()).orElseThrow().isActivo()).isFalse();
         var events=pendientes.findTop50ByOrderByIdAsc();
         org.assertj.core.api.Assertions.assertThat(events).extracting(e -> e.getRoutingKey())
             .containsExactly("pedido.estado.en_reparto","pedido.eliminado");
@@ -157,7 +157,7 @@ class WorlddeliveryBackendApplicationTests {
     }
 
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.ValueSource(strings={"PATCH","DELETE"})
+    @org.junit.jupiter.params.provider.ValueSource(strings={"PUT","PATCH","DELETE"})
     void corsAllowsConfiguredOriginAndMethod(String method) throws Exception {
         mvc.perform(options("/api/pedidos/1/estado").header("Origin","https://frontend.example.test")
                 .header("Access-Control-Request-Method",method)

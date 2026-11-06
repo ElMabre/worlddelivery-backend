@@ -18,11 +18,13 @@ public class SecurityConfig {
             .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults())).build();
     }
     @Bean CorsConfigurationSource corsConfigurationSource(@Value("${app.cors.allowed-origins:}") List<String> origins) {
+        var allowed=new java.util.ArrayList<>(List.of("https://54.156.80.92","http://localhost:4200"));
+        origins.stream().map(String::trim).filter(s -> !s.isBlank() && !allowed.contains(s)).forEach(allowed::add);
         var config=new CorsConfiguration();
-        config.setAllowedOrigins(origins.stream().map(String::trim).filter(s -> !s.isBlank()).toList());
-        config.setAllowedMethods(List.of("GET","POST","PATCH","DELETE","OPTIONS"));
+        config.setAllowedOrigins(allowed);
+        config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization","Content-Type"));
         var source=new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**",config); return source;
+        source.registerCorsConfiguration("/**",config); return source;
     }
 }

@@ -11,7 +11,7 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: ${DB_DDL_AUTO:update}
+      ddl-auto: ${DB_DDL_AUTO:validate}
   security:
     oauth2:
       resourceserver:
@@ -27,7 +27,7 @@ spring:
       mandatory: true
 app:
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://54.156.80.92,http://localhost:4200}
   seed:
     enabled: ${SEED_ENABLED:false}
   outbox:
@@ -39,3 +39,4 @@ app:
     created-key: pedido.creado
     deleted-key: pedido.eliminado
     state-prefix: pedido.estado.
+    modified-key: pedido.modificado

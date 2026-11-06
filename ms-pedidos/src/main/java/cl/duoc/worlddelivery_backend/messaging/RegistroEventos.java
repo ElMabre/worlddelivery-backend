@@ -21,6 +21,7 @@ public class RegistroEventos {
         String key=switch(tipo) {
             case CREADO -> config.createdKey();
             case ELIMINADO -> config.deletedKey();
+            case MODIFICADO -> config.modifiedKey();
             case ESTADO_ACTUALIZADO -> config.statePrefix()+pedido.estado().claveEvento();
         };
         if (tipo==PedidoEvento.Tipo.CREADO) {

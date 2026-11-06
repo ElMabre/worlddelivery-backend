@@ -18,6 +18,10 @@ public class ApiExceptionHandler {
     public ProblemDetail jsonInvalido() {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,"JSON, fecha o estado inválido");
     }
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ProblemDetail negocio(org.springframework.web.server.ResponseStatusException ex) {
+        return ProblemDetail.forStatusAndDetail(ex.getStatusCode(),ex.getReason());
+    }
     @ExceptionHandler(OptimisticLockingFailureException.class)
     public ProblemDetail conflicto() {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,"El pedido cambió; vuelve a consultar antes de modificarlo");

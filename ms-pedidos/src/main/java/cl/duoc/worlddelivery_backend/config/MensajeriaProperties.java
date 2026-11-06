@@ -5,4 +5,4 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix="app.messaging")
 public record MensajeriaProperties(@NotBlank String directExchange, @NotBlank String topicExchange,
-    @NotBlank String createdKey, @NotBlank String deletedKey, @NotBlank String statePrefix) {}
+    @NotBlank String createdKey, @NotBlank String deletedKey, @NotBlank String statePrefix, @NotBlank String modifiedKey) {}
