@@ -1,12 +1,14 @@
 # World Delivery | Backend
 
-Proyecto Maven con tres microservicios Spring Boot 4.1.1. Los módulos compilan para Java 17. El flujo de pedidos combina PostgreSQL y RabbitMQ para procesar entregas, notificaciones y auditoría.
+Proyecto Maven con cuatro microservicios Spring Boot 4.1.1. Los módulos compilan para Java 17. El flujo de pedidos combina PostgreSQL y RabbitMQ para procesar entregas, notificaciones y auditoría.
 
 | Microservicio | Puerto | Responsabilidad |
 |---|---:|---|
 | [ms-pedidos](ms-pedidos/README.md) | 8080 | API de pedidos, persistencia JPA y publicación de eventos desde el outbox |
 | [ms-operaciones](ms-operaciones/README.md) | 8081 | Declaración de la topología y consumo de eventos por dominio |
 | [ms-rabbit-admin](ms-rabbit-admin/README.md) | 8082 | API de administración de colas, exchanges y bindings |
+
+| [ms-usuarios](ms-usuarios/README.md) | 8083 | Usuarios y grupos del User Pool mediante AWS SDK v2 |
 
 ## Flujo de un pedido
 

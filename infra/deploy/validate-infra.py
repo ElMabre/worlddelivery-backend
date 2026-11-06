@@ -32,16 +32,16 @@ for filename in ('frontend-stack.json', 'api-stack.json'):
 
 api = json.loads((root / 'api-stack.json').read_text(encoding='utf-8'))['Resources']
 routes = [r['Properties'] for r in api.values() if r['Type'] == 'AWS::ApiGatewayV2::Route']
-assert len(routes) == 11
+assert len(routes) == 17
 assert all(r['AuthorizationType'] == 'JWT' for r in routes)
-assert all(r['AuthorizationScopes'] == ['resource-server-worlddelivery/admin'] for r in routes if '/rabbitmq/' in r['RouteKey'])
+assert all(r['AuthorizationScopes'] == ['resource-server-worlddelivery/admin'] for r in routes if '/rabbitmq/' in r['RouteKey'] or '/usuarios' in r['RouteKey'])
 assert api['Integration']['Properties']['RequestParameters'] == {'overwrite:path': '$request.path'}
-assert {'PATCH', 'DELETE', 'OPTIONS'} <= set(api['Api']['Properties']['CorsConfiguration']['AllowMethods'])
+assert {'PUT', 'PATCH', 'DELETE', 'OPTIONS'} <= set(api['Api']['Properties']['CorsConfiguration']['AllowMethods'])
 site = json.loads((root / 'frontend-stack.json').read_text(encoding='utf-8'))['Resources']
 errors = site['Distribution']['Properties']['DistributionConfig']['CustomErrorResponses']
 assert {e['ErrorCode'] for e in errors} == {403, 404}
 assert all(e['ResponseCode'] == 200 and e['ResponsePagePath'] == '/index.html' for e in errors)
-for name in ('ms-pedidos', 'ms-operaciones', 'ms-rabbit-admin'):
+for name in ('ms-pedidos', 'ms-operaciones', 'ms-rabbit-admin', 'ms-usuarios'):
     unit = (root / 'systemd' / f'{name}.service').read_text(encoding='utf-8')
     assert '-Xmx256m' in unit
     assert f'EnvironmentFile=/etc/worlddelivery/{name}.env' in unit

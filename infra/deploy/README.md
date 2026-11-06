@@ -1,6 +1,6 @@
 # World Delivery | Despliegue
 
-La instalación de referencia usa EC2 para los tres procesos Java y el clúster RabbitMQ, RDS PostgreSQL en la VPC y una REST API de API Gateway en el stage `Deploy1_Ev`. Cognito autentica las solicitudes del frontend.
+La instalación de referencia usa EC2 para los cuatro procesos Java y el clúster RabbitMQ, RDS PostgreSQL en la VPC y una REST API de API Gateway en el stage `Deploy1_Ev`. Cognito autentica las solicitudes del frontend.
 
 ## Servicios en EC2
 
@@ -9,7 +9,7 @@ La instalación de referencia usa EC2 para los tres procesos Java y el clúster 
 El broker debe estar disponible antes de arrancar `ms-operaciones`, que declara la topología. Iniciar después `ms-pedidos` y `ms-rabbit-admin`. Para consultar el estado:
 
 ```bash
-sudo systemctl status ms-operaciones ms-pedidos ms-rabbit-admin --no-pager
+sudo systemctl status ms-operaciones ms-pedidos ms-rabbit-admin ms-usuarios --no-pager
 ```
 
 ## PostgreSQL y TLS

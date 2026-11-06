@@ -4,7 +4,7 @@ set -euo pipefail
 [[ ${EUID} -eq 0 ]] || { echo 'Run with sudo on the target Linux host.' >&2; exit 1; }
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 repo_dir=$(cd -- "$script_dir/../.." && pwd)
-for service in ms-pedidos ms-operaciones ms-rabbit-admin; do
+for service in ms-pedidos ms-operaciones ms-rabbit-admin ms-usuarios; do
   [[ -f "$repo_dir/$service/target/$service-0.0.1-SNAPSHOT.jar" ]] || { echo "Missing JAR: $service" >&2; exit 1; }
   if systemctl is-active --quiet "$service"; then
     echo "Stop $service before replacing its JAR." >&2; exit 1
@@ -14,7 +14,7 @@ id worlddelivery >/dev/null 2>&1 || useradd --system --home-dir /var/lib/worldde
 install -d -m 755 /opt/worlddelivery
 install -d -m 700 /etc/worlddelivery
 install -d -o worlddelivery -g worlddelivery -m 750 /var/lib/worlddelivery
-for service in ms-pedidos ms-operaciones ms-rabbit-admin; do
+for service in ms-pedidos ms-operaciones ms-rabbit-admin ms-usuarios; do
   install -d -o worlddelivery -g worlddelivery -m 750 "/var/lib/worlddelivery/$service"
   if [[ -f "/opt/worlddelivery/$service.jar" ]]; then
     cp -- "/opt/worlddelivery/$service.jar" "/opt/worlddelivery/$service.jar.previous"

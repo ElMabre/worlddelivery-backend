@@ -1,0 +1,6 @@
+BEGIN;
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS activo boolean;
+UPDATE pedidos SET activo = true WHERE activo IS NULL;
+ALTER TABLE pedidos ALTER COLUMN activo SET DEFAULT true;
+ALTER TABLE pedidos ALTER COLUMN activo SET NOT NULL;
+COMMIT;

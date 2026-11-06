@@ -1,0 +1,17 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "cognito-idp:ListUsers",
+        "cognito-idp:AdminListGroupsForUser",
+        "cognito-idp:AdminGetUser",
+        "cognito-idp:AdminDisableUser",
+        "cognito-idp:AdminAddUserToGroup",
+        "cognito-idp:AdminRemoveUserFromGroup"
+      ],
+      "Resource": "arn:aws:cognito-idp:us-east-1:REEMPLAZAR_ACCOUNT_ID:userpool/us-east-1_oTG1RQi5f"
+    }
+  ]
+}

@@ -128,6 +128,43 @@
         }
       }
     },
+    "UsuariosIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "BackendSecurityGroupId"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8083,
+        "ToPort": 8083,
+        "SourceSecurityGroupId": {
+          "Ref": "AlbSG"
+        }
+      }
+    },
+    "UsuariosTarget": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "Port": 8083,
+        "Protocol": "HTTP",
+        "TargetType": "instance",
+        "Targets": [
+          {
+            "Id": {
+              "Ref": "InstanceId"
+            },
+            "Port": 8083
+          }
+        ],
+        "HealthCheckPath": "/api/usuarios",
+        "Matcher": {
+          "HttpCode": "401"
+        }
+      }
+    },
     "Alb": {
       "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
       "Properties": {
@@ -214,6 +251,32 @@
         ]
       }
     },
+    "UsuariosRule": {
+      "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "Properties": {
+        "ListenerArn": {
+          "Ref": "Listener"
+        },
+        "Priority": 3,
+        "Conditions": [
+          {
+            "Field": "path-pattern",
+            "Values": [
+              "/api/usuarios",
+              "/api/usuarios/*"
+            ]
+          }
+        ],
+        "Actions": [
+          {
+            "Type": "forward",
+            "TargetGroupArn": {
+              "Ref": "UsuariosTarget"
+            }
+          }
+        ]
+      }
+    },
     "Api": {
       "Type": "AWS::ApiGatewayV2::Api",
       "Properties": {
@@ -230,6 +293,7 @@
           "AllowMethods": [
             "GET",
             "POST",
+            "PUT",
             "PATCH",
             "DELETE",
             "OPTIONS"
@@ -500,6 +564,120 @@
           "Ref": "Api"
         },
         "RouteKey": "DELETE /api/rabbitmq/bindings",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Authorizer"
+        },
+        "AuthorizationScopes": [
+          "resource-server-worlddelivery/admin"
+        ]
+      }
+    },
+    "PurgeQueue": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "POST /api/rabbitmq/queues/{name}/purge",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Authorizer"
+        },
+        "AuthorizationScopes": [
+          "resource-server-worlddelivery/admin"
+        ]
+      }
+    },
+    "EditPedido": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "PUT /api/pedidos/{id}",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Authorizer"
+        },
+        "AuthorizationScopes": [
+          "resource-server-worlddelivery/update"
+        ]
+      }
+    },
+    "ListPedidosInactivos": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "GET /api/pedidos/inactivos",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Authorizer"
+        },
+        "AuthorizationScopes": [
+          "resource-server-worlddelivery/admin"
+        ]
+      }
+    },
+    "ListUsuarios": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "GET /api/usuarios",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Authorizer"
+        },
+        "AuthorizationScopes": [
+          "resource-server-worlddelivery/admin"
+        ]
+      }
+    },
+    "DisableUsuario": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "PATCH /api/usuarios/{username}/deshabilitar",
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Authorizer"
+        },
+        "AuthorizationScopes": [
+          "resource-server-worlddelivery/admin"
+        ]
+      }
+    },
+    "UpdateUsuarioRol": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "PATCH /api/usuarios/{username}/rol",
         "Target": {
           "Fn::Sub": "integrations/${Integration}"
         },
