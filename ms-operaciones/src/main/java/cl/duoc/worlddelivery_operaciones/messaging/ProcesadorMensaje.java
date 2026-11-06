@@ -1,5 +1,6 @@
 package cl.duoc.worlddelivery_operaciones.messaging;
 import cl.duoc.worlddelivery_operaciones.config.ProcesamientoProperties;
+import cl.duoc.worlddelivery_operaciones.config.RetryProperties;
 import com.rabbitmq.client.Channel;
 import jakarta.validation.Validator;
 import org.springframework.amqp.core.Message;
@@ -16,8 +17,10 @@ public class ProcesadorMensaje {
     private final ObjectMapper json;
     private final Validator validator;
     private final ProcesamientoProperties config;
-    public ProcesadorMensaje(ObjectMapper json,Validator validator,ProcesamientoProperties config) {
-        this.json=json; this.validator=validator; this.config=config;
+    private final RetryProperties retry;
+    private final RetryPause pause;
+    public ProcesadorMensaje(ObjectMapper json,Validator validator,ProcesamientoProperties config, RetryProperties retry, RetryPause pause) {
+        this.json=json; this.validator=validator; this.config=config; this.retry=retry; this.pause=pause;
     }
     public void procesar(Dominio dominio,Message message,Channel channel,Consumer<EventoPedido> accion) throws IOException {
         long tag=message.getMessageProperties().getDeliveryTag();
@@ -34,7 +37,7 @@ public class ProcesadorMensaje {
         if (!dominio.acepta(evento.tipo())) {
             rechazar(channel,tag,dominio,eventId,"TIPO_NO_ADMITIDO"); return;
         }
-        for (int intento=1;intento<=config.maxRetries()+1;intento++) {
+        for (int intento=1;intento<=retry.attempts();intento++) {
             log.info("PROCESANDO dominio={} eventId={} intento={}",dominio,eventId,intento);
             try {
                 if (config.demoFailureEnabled() && (evento.pedido().producto().contains("[ERROR-DLQ]")
@@ -43,8 +46,15 @@ public class ProcesadorMensaje {
                 }
                 accion.accept(evento);
             } catch (FalloRecuperable ex) {
-                if (intento<=config.maxRetries()) {
+                if (intento<retry.attempts()) {
                     log.warn("REINTENTO dominio={} eventId={} siguienteIntento={} causa={}",dominio,eventId,intento+1,ex.getClass().getSimpleName());
+                    try {
+                        pause.await(retry.initialInterval());
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                        // Dejar la entrega sin confirmar permite recuperarla al cerrar el canal.
+                        throw new IOException("Espera de reintento interrumpida", interrupted);
+                    }
                     continue;
                 }
                 rechazar(channel,tag,dominio,eventId,"REINTENTOS_AGOTADOS"); return;

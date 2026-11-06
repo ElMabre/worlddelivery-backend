@@ -25,6 +25,9 @@ import static org.mockito.Mockito.*;
     "spring.rabbitmq.dynamic=false", "app.topology.declare-on-startup=false",
     "spring.rabbitmq.username=test", "spring.rabbitmq.password=test"})
 class ConsumidoresTest {
+    final RetryPause pause=mock(RetryPause.class);
+    @Autowired cl.duoc.worlddelivery_operaciones.config.RetryProperties retry;
+    @Autowired org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory factory;
     @Autowired ObjectMapper json;
     @Autowired Validator validator;
     @Autowired RabbitListenerEndpointRegistry listeners;
@@ -39,10 +42,26 @@ class ConsumidoresTest {
     }
     Message mensaje(EventoPedido e) { return mensaje(json.writeValueAsBytes(e)); }
     ProcesadorMensaje procesador(boolean demo) {
-        return new ProcesadorMensaje(json,validator,new ProcesamientoProperties(2,demo,temporal.toString()));
+        return new ProcesadorMensaje(json,validator,new ProcesamientoProperties(demo,temporal.toString()),new cl.duoc.worlddelivery_operaciones.config.RetryProperties(true,3,Duration.ofSeconds(3)),pause);
     }
     RegistroOperaciones registro() {
-        return new RegistroOperaciones(new ProcesamientoProperties(2,true,temporal.toString()),json);
+        return new RegistroOperaciones(new ProcesamientoProperties(true,temporal.toString()),json);
+    }
+    @Test void configuraUnaSolaPoliticaDeTresIntentosConPausa() {
+        assertThat(retry.enabled()).isTrue();
+        assertThat(retry.attempts()).isEqualTo(3);
+        assertThat(retry.initialInterval()).isEqualTo(Duration.ofSeconds(3));
+        assertThat(factory.getAdviceChain()).isEmpty();
+    }
+    @Test void interrupcionNoConfirmaNiDescartaEntrega() throws Exception {
+        var channel=mock(Channel.class);
+        doThrow(new InterruptedException()).when(pause).await(any());
+        try {
+            assertThatThrownBy(() -> procesador(true).procesar(Dominio.DESPACHO,mensaje(evento("Producto")),channel,
+                e -> {throw new FalloRecuperable("temporal");})).isInstanceOf(IOException.class);
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+            verifyNoInteractions(channel);
+        } finally { Thread.interrupted(); }
     }
     @Test void registraTresColasConAckManualSinIniciarConexion() {
         assertThat(listeners.getListenerContainerIds()).containsExactlyInAnyOrder("despacho","notificaciones","auditoria");
@@ -67,6 +86,7 @@ class ConsumidoresTest {
         procesador(true).procesar(Dominio.DESPACHO,mensaje(evento("Producto")),channel,e -> {
             if(count.incrementAndGet()<3) throw new FalloRecuperable("temporal");
         });
+        verify(pause,times(2)).await(Duration.ofSeconds(3));
         assertThat(count.get()).isEqualTo(3); verify(channel).basicAck(42,false); verifyNoMoreInteractions(channel);
     }
     @Test void agotamientoRechazaSinReencolarTrasTresIntentos() throws Exception {
@@ -153,5 +173,16 @@ class ConsumidoresTest {
             count.incrementAndGet(); assertThat(e.pedido().estado()).isEqualTo(EventoPedido.Estado.EN_TRANSITO);
         });
         assertThat(count.get()).isOne(); verify(channel).basicAck(42,false); verifyNoMoreInteractions(channel);
+    }
+
+    @Test void modifiedEventReachesAuditAndOldSnapshotsRemainReadable() throws Exception {
+        var original=evento("Producto");
+        var modified=new EventoPedido(original.eventId(),EventoPedido.Tipo.MODIFICADO,original.ocurridoEn(),original.pedido());
+        var channel=mock(Channel.class);
+        var store=registro();
+        procesador(false).procesar(Dominio.AUDITORIA,mensaje(modified),channel,e -> store.guardar(Dominio.AUDITORIA,e));
+        verify(channel).basicAck(42,false);
+        assertThat(Dominio.NOTIFICACIONES.acepta(modified.tipo())).isFalse();
+        assertThat(json.readValue(json.writeValueAsBytes(original),EventoPedido.class)).isEqualTo(original);
     }
 }

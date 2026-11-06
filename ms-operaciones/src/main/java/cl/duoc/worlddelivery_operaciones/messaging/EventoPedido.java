@@ -9,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 public record EventoPedido(@NotNull UUID eventId, @NotNull Tipo tipo, @NotNull Instant ocurridoEn,
                            @NotNull @Valid Pedido pedido) {
-    public enum Tipo { CREADO, ESTADO_ACTUALIZADO, ELIMINADO }
+    public enum Tipo { CREADO, ESTADO_ACTUALIZADO, ELIMINADO, MODIFICADO }
     public enum Estado {
         PENDIENTE, EN_PREPARACION, EN_TRANSITO, EN_REPARTO, ENTREGADO;
         @JsonValue public String etiqueta() { return name().replace('_',' '); }
