@@ -29,14 +29,19 @@ class AdminTests {
     @Autowired MockMvc mvc;
     @MockitoBean JwtDecoder decoder;
     @MockitoBean RabbitAdmin broker;
-    RequestPostProcessor admin() { return jwt().authorities(new SimpleGrantedAuthority("SCOPE_resource-server-worlddelivery/admin")); }
+    RequestPostProcessor admin() {
+        return jwt().jwt(j -> j.claim("cognito:groups",java.util.List.of("Admin")))
+            .authorities(new SimpleGrantedAuthority("SCOPE_resource-server-worlddelivery/admin"));
+    }
     @Test void todasLasMutacionesRequierenTokenYScopeAdmin() throws Exception {
         var requests=java.util.List.of(post("/api/rabbitmq/queues"),delete("/api/rabbitmq/queues/demo"),
+            post("/api/rabbitmq/queues/demo/purge"),
             post("/api/rabbitmq/exchanges"),delete("/api/rabbitmq/exchanges/demo"),
             post("/api/rabbitmq/bindings"),delete("/api/rabbitmq/bindings"),get("/api/rabbitmq/queues/demo"));
         for(var request:requests) {
             mvc.perform(request).andExpect(status().isUnauthorized());
-            mvc.perform(request.with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_resource-server-worlddelivery/delete"))))
+            mvc.perform(request.with(jwt().jwt(j -> j.claim("cognito:groups",java.util.List.of("Usuario")))
+                .authorities(new SimpleGrantedAuthority("SCOPE_resource-server-worlddelivery/delete"))))
                 .andExpect(status().isForbidden());
         }
         verifyNoInteractions(broker);
@@ -122,6 +127,15 @@ class AdminTests {
         mvc.perform(get("/api/rabbitmq/queues/demo").with(admin())).andExpect(status().isOk())
             .andExpect(jsonPath("$.messagesReady").value(2)).andExpect(jsonPath("$.consumers").value(1));
         mvc.perform(get("/api/rabbitmq/queues/missing").with(admin())).andExpect(status().isServiceUnavailable());
+    }
+    @Test void purgaColaExistenteYRechazaInexistente() throws Exception {
+        var props=new Properties();props.put(RabbitAdmin.QUEUE_MESSAGE_COUNT,4);props.put(RabbitAdmin.QUEUE_CONSUMER_COUNT,0);
+        when(broker.getQueueProperties("demo.dlq")).thenReturn(props);
+        when(broker.purgeQueue("demo.dlq")).thenReturn(4);
+        mvc.perform(post("/api/rabbitmq/queues/demo.dlq/purge").with(admin())).andExpect(status().isOk())
+            .andExpect(jsonPath("$.name").value("demo.dlq")).andExpect(jsonPath("$.messagesPurged").value(4));
+        mvc.perform(post("/api/rabbitmq/queues/missing/purge").with(admin())).andExpect(status().isServiceUnavailable());
+        mvc.perform(post("/api/rabbitmq/queues/amq.demo/purge").with(admin())).andExpect(status().isBadRequest());
     }
     @Test void traduceConflictoYRecursoAusenteDelBroker() throws Exception {
         for(int code:new int[]{404,406}) {

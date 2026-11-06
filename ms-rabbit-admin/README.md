@@ -4,12 +4,13 @@ Spring Boot 4.1.1, Java 17, puerto 8082. El controlador delega todas las operaci
 
 ## Contrato REST
 
-Todas las rutas requieren `Authorization: Bearer <access_token>` y scope `resource-server-worlddelivery/admin` (configurable mediante `RABBIT_ADMIN_SCOPE`).
+Todas las rutas requieren `Authorization: Bearer <access_token>`, pertenecer al grupo Cognito `Admin` y contar con el scope `resource-server-worlddelivery/admin` (configurable mediante `RABBIT_ADMIN_SCOPE`).
 
 | Método y ruta | Entrada | Respuesta correcta |
 |---|---|---|
 | POST /api/rabbitmq/queues | `{"name":"demo.queue"}` | 201, nombre |
 | GET /api/rabbitmq/queues/{name} | Nombre en ruta | 200, name/messagesReady/consumers |
+| POST /api/rabbitmq/queues/{name}/purge | Nombre en ruta | 200, name/messagesPurged |
 | DELETE /api/rabbitmq/queues/{name} | Nombre en ruta | 204 |
 | POST /api/rabbitmq/exchanges | `{"name":"demo.exchange","type":"TOPIC"}` | 201, nombre y tipo |
 | DELETE /api/rabbitmq/exchanges/{name} | Nombre en ruta | 204 |

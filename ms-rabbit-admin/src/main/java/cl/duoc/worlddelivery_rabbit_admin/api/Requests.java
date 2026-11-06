@@ -10,4 +10,5 @@ public final class Requests {
         @NotBlank @Pattern(regexp=NAME) String exchange,
         @NotNull @Size(max=128) @Pattern(regexp="[A-Za-z0-9._*#-]*") String routingKey) {}
     public record QueueStatus(String name,int messagesReady,int consumers) {}
+    public record PurgeStatus(String name,int messagesPurged) {}
 }

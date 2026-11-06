@@ -14,6 +14,8 @@ public class RabbitAdminController {
     public QueueRequest createQueue(@Valid @RequestBody QueueRequest request) { return service.createQueue(request); }
     @GetMapping("/queues/{name}")
     public QueueStatus queueStatus(@PathVariable @Pattern(regexp=Requests.NAME) String name) { return service.queueStatus(name); }
+    @PostMapping("/queues/{name}/purge")
+    public PurgeStatus purgeQueue(@PathVariable @Pattern(regexp=Requests.NAME) String name) { return service.purgeQueue(name); }
     @DeleteMapping("/queues/{name}") @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteQueue(@PathVariable @Pattern(regexp=Requests.NAME) String name) { service.deleteQueue(name); }
     @PostMapping("/exchanges") @ResponseStatus(HttpStatus.CREATED)

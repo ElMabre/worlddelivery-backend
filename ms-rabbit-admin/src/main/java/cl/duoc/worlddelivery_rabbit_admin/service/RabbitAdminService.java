@@ -36,6 +36,10 @@ public class RabbitAdminService {
         return new QueueStatus(name,((Number)properties.get(RabbitAdmin.QUEUE_MESSAGE_COUNT)).intValue(),
             ((Number)properties.get(RabbitAdmin.QUEUE_CONSUMER_COUNT)).intValue());
     }
+    public PurgeStatus purgeQueue(String name) {
+        if(admin.getQueueProperties(name)==null) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Cola inexistente o no consultable");
+        return new PurgeStatus(name,admin.purgeQueue(name));
+    }
     private Binding binding(BindingRequest request) {
         return new Binding(request.queue(),Binding.DestinationType.QUEUE,request.exchange(),request.routingKey(),null);
     }
